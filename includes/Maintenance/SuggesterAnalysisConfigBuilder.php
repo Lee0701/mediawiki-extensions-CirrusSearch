@@ -263,6 +263,53 @@ class SuggesterAnalysisConfigBuilder extends AnalysisConfigBuilder {
 			$config[ 'analyzer' ][ 'plain' ][ 'char_filter' ][] = 'russian_diacritic_map';
 			$config[ 'analyzer' ][ 'plain_search' ] = $config[ 'analyzer' ][ 'plain' ];
 			break;
+
+		case 'korean':
+			// 'mixed' mode keeps the original token plus the compound parts
+			// the default is 'discard' which only keeps the parts
+			// $config[ 'tokenizer' ][ 'nori_tok' ] = [
+			// 	'type' => 'nori_tokenizer',
+			// 	'decompound_mode' => 'discard',
+			// ];
+
+			// $config[ 'analyzer' ][ 'plain' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'plain' ][ 'filter' ] = [
+			// 	"remove_empty",
+			// 	"token_limit",
+			// 	"nori_readingform",
+			// 	"lowercase",
+			// 	"concatenation",
+			// ];
+			
+			// $config[ 'analyzer' ][ 'plain_search' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'plain_search' ][ 'filter' ] = [
+			// 	"remove_empty",
+			// 	"token_limit",
+			// 	"nori_readingform",
+			// 	"lowercase",
+			// 	"concatenation",
+			// ];
+
+			// $config[ 'analyzer' ][ 'stop_analyzer' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'stop_analyzer' ][ 'filter' ] = [
+			// 	"nori_readingform",
+			// 	"lowercase",
+			// 	"accentfolding",
+			// 	"remove_empty",
+			// 	"token_limit",
+			// 	"concatenation",
+			// ];
+			
+			// $config[ 'analyzer' ][ 'stop_analyzer_search' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'stop_analyzer_search' ][ 'filter' ] = [
+			// 	"nori_readingform",
+			// 	"lowercase",
+			// 	"accentfolding",
+			// 	"remove_empty",
+			// 	"token_limit",
+			// 	"concatenation",
+			// ];
+			// break;
 		}
 
 		if ( $this->isIcuAvailable() ) {

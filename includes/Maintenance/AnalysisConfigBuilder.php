@@ -498,6 +498,7 @@ class AnalysisConfigBuilder {
 					'min_shingle_size' => 2,
 					'max_shingle_size' => 3,
 					'output_unigrams' => true,
+					'token_separator' => '',
 				],
 				'lowercase' => [
 					'type' => 'lowercase',
@@ -976,6 +977,10 @@ STEMMER_RULES
 				'type' => 'nori_tokenizer',
 				'decompound_mode' => 'mixed',
 			];
+			$config[ 'tokenizer' ][ 'nori_tok_discard' ] = [
+				'type' => 'nori_tokenizer',
+				'decompound_mode' => 'discard',
+			];
 
 			// Nori-specific character filters:
 			// * convert middle dot to arae-a
@@ -1027,8 +1032,37 @@ STEMMER_RULES
 					'nori_length',
 				],
 			];
-
 			$config[ 'analyzer' ][ 'text_search' ] = $config[ 'analyzer' ][ 'text' ];
+
+			$config[ 'analyzer' ][ 'plain' ] = [
+				'type' => 'custom',
+				'tokenizer' => 'nori_tok',
+				'filter' => [
+					'nori_readingform',
+					'lowercase',
+				],
+				'char_filter' => [ 'word_break_helper' ],
+			];
+
+			$config[ 'analyzer' ][ 'plain_search' ] = $config[ 'analyzer' ][ 'plain' ];
+
+			// $config[ 'analyzer' ][ 'suggest' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'suggest' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'suggest_shingle' ];
+			// $config[ 'analyzer' ][ 'suggest_reverse' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'suggest_reverse' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'suggest_shingle', 'reverse' ];
+
+			// $config[ 'analyzer' ][ 'near_match' ][ 'tokenizer' ] = 'nori_tok';
+			// $config[ 'analyzer' ][ 'near_match' ][ 'filter' ][] = 'nori_readingform';
+
+			$config[ 'analyzer' ][ 'prefix' ][ 'tokenizer' ] = 'nori_tok_discard';
+			$config[ 'analyzer' ][ 'prefix' ][ 'filter' ] = [ 'nori_readingform' , 'lowercase', 'concatenation', 'prefix_ngram_filter' ];
+
+			$config[ 'analyzer' ][ 'word_prefix' ][ 'tokenizer' ] = 'nori_tok';
+			$config[ 'analyzer' ][ 'word_prefix' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'prefix_ngram_filter' ];
+
+			$config[ 'analyzer' ][ 'keyword' ][ 'tokenizer' ] = 'nori_tok';
+			$config[ 'analyzer' ][ 'keyword' ][ 'filter' ] = [ 'nori_readingform', 'truncate_keyword' ];
+
 			break;
 		case 'mirandese':
 			// Unpack default analyzer to add Mirandese-specific elision and stop words
