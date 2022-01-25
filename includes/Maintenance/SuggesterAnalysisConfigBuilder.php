@@ -263,6 +263,27 @@ class SuggesterAnalysisConfigBuilder extends AnalysisConfigBuilder {
 			$config[ 'analyzer' ][ 'plain' ][ 'char_filter' ][] = 'russian_diacritic_map';
 			$config[ 'analyzer' ][ 'plain_search' ] = $config[ 'analyzer' ][ 'plain' ];
 			break;
+
+		case 'korean':
+			// Unpack nori analyzer to add ICU normalization and custom filters
+			// See https://www.mediawiki.org/wiki/User:TJones_(WMF)/T206874
+
+			// 'mixed' mode keeps the original token plus the compound parts
+			// the default is 'discard' which only keeps the parts
+			$config[ 'tokenizer' ][ 'nori_tok' ] = [
+				'type' => 'nori_tokenizer',
+				'decompound_mode' => 'mixed',
+			];
+
+			$config[ 'analyzer' ][ 'plain' ][ 'filter' ][] = 'nori_readingform';
+			$config[ 'analyzer' ][ 'plain' ][ 'tokenizer' ] = 'nori_tok';
+			$config[ 'analyzer' ][ 'plain_search' ] = $config[ 'analyzer' ][ 'plain' ];
+
+			$config[ 'analyzer' ][ 'stop_analyzer' ][ 'filter' ][] = 'nori_readingform';
+			$config[ 'analyzer' ][ 'stop_analyzer' ][ 'tokenizer' ] = 'nori_tok';
+			$config[ 'analyzer' ][ 'stop_analyzer_search' ] = $config[ 'analyzer' ][ 'stop_analyzer' ];
+
+			break;
 		}
 
 		if ( $this->isIcuAvailable() ) {
