@@ -309,7 +309,7 @@ class SuggesterAnalysisConfigBuilder extends AnalysisConfigBuilder {
 			// 	"token_limit",
 			// 	"concatenation",
 			// ];
-			// break;
+			break;
 		}
 
 		if ( $this->isIcuAvailable() ) {
