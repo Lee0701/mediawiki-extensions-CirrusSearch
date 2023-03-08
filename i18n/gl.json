@@ -1,13 +1,13 @@
 {
 	"@metadata": {
 		"authors": [
+			"ArenaL5",
 			"Banjo",
 			"Elisardojm",
 			"Iváns",
 			"Matma Rex",
 			"Toliño",
-			"Vivaelcelta",
-			"ArenaL5"
+			"Vivaelcelta"
 		]
 	},
 	"cirrussearch-desc": "Procura baseada en Elasticsearch para MediaWiki",

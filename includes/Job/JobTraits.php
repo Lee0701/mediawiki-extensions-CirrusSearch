@@ -7,8 +7,9 @@ use CirrusSearch\Connection;
 use CirrusSearch\ExternalIndex;
 use CirrusSearch\HashSearchConfig;
 use CirrusSearch\SearchConfig;
-use JobQueueGroup;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\MainConfigNames;
+use MediaWiki\MediaWikiServices;
 
 /**
  * Traits for CirrusSearch Jobs.
@@ -97,9 +98,6 @@ trait JobTraits {
 				$config = new HashSearchConfig( [ 'CirrusSearchReplicaGroup' => $otherIndex->getCrossClusterName() ],
 					[ HashSearchConfig::FLAG_INHERIT ], $config );
 			}
-			$clusterNames = array_filter( $clusterNames, function ( $cluster ) use ( $otherIndex ) {
-				return !$otherIndex->isClusterBlacklisted( $cluster );
-			} );
 		}
 
 		// Limit private data writes, such as archive index, to appropriately
@@ -109,7 +107,7 @@ trait JobTraits {
 			// must work appropriately with no connections returned, typically
 			// by looping over the connections and doing nothing when no
 			// connections are provided.
-			$clusterNames = array_filter( $clusterNames, function ( $name ) use ( $config ) {
+			$clusterNames = array_filter( $clusterNames, static function ( $name ) use ( $config ) {
 				$settings = new ClusterSettings( $config, $name );
 				return $settings->isPrivateCluster();
 			} );
@@ -130,7 +128,10 @@ trait JobTraits {
 	 * @return bool
 	 */
 	public function run() {
-		if ( $this->getSearchConfig()->get( 'DisableSearchUpdate' ) ) {
+		if ( $this->getSearchConfig()->get( MainConfigNames::DisableSearchUpdate ) ||
+			$this->getSearchConfig()->get( 'CirrusSearchDisableUpdate' )
+		) {
+			LoggerFactory::getInstance( 'CirrusSearch' )->debug( "Skipping job: search updates disabled by config" );
 			return true;
 		}
 
@@ -151,7 +152,7 @@ trait JobTraits {
 	 * @return array options to set to add to the job param
 	 */
 	public static function buildJobDelayOptions( $jobClass, $delay ): array {
-		$jobQueue = JobQueueGroup::singleton()->get( $jobClass );
+		$jobQueue = MediaWikiServices::getInstance()->getJobQueueGroup()->get( $jobClass );
 		if ( !$delay || !$jobQueue->delayedJobsEnabled() ) {
 			return [];
 		}

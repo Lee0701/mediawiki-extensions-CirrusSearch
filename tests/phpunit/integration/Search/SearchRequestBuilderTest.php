@@ -27,7 +27,7 @@ class SearchRequestBuilderTest extends CirrusIntegrationTestCase {
 		$this->setMwGlobals( self::prefixArrayKeys( $hostOverrides, 'wg' ) );
 		$otherWikiConfig = new HashSearchConfig( $otherOverride + $hostOverrides );
 
-		$context = new SearchContext( $otherWikiConfig, null, CirrusDebugOptions::forDumpingQueriesInUnitTests() );
+		$context = new SearchContext( $otherWikiConfig, null, CirrusDebugOptions::forDumpingQueriesInUnitTests( false ) );
 		$conn = new Connection( new SearchConfig() );
 		$indexBaseName = 'trebuchet';
 		return new SearchRequestBuilder( $context, $conn, $indexBaseName );
@@ -43,11 +43,11 @@ class SearchRequestBuilderTest extends CirrusIntegrationTestCase {
 
 	public function testCanOverridePageType() {
 		$builder = $this->searchRequestBuilder();
-		$pageType = $this->getMockBuilder( \Elastica\Type::class )
+		$index = $this->getMockBuilder( \Elastica\Index::class )
 			->disableOriginalConstructor()
 			->getMock();
-		$builder->setPageType( $pageType );
-		$this->assertSame( $pageType, $builder->getPageType() );
+		$builder->setIndex( $index );
+		$this->assertSame( $index, $builder->getIndex() );
 	}
 
 	public function testGetPageTypeWithCrossClusterSearch() {
@@ -55,13 +55,13 @@ class SearchRequestBuilderTest extends CirrusIntegrationTestCase {
 		$builder = $this->searchRequestBuilder( [
 			'CirrusSearchCrossClusterSearch' => false,
 		] );
-		$this->assertEquals( 'trebuchet', $builder->getPageType()->getIndex()->getName() );
+		$this->assertEquals( 'trebuchet', $builder->getIndex()->getName() );
 
 		// Cross cluster assigned to same replica group: no prefix
 		$builder = $this->searchRequestBuilder( [
 			'CirrusSearchCrossClusterSearch' => true,
 		] );
-		$this->assertEquals( 'trebuchet', $builder->getPageType()->getIndex()->getName() );
+		$this->assertEquals( 'trebuchet', $builder->getIndex()->getName() );
 
 		// Cross cluster assigned to different replica group: apply prefix
 		$builder = $this->searchRequestBuilder( [
@@ -69,6 +69,6 @@ class SearchRequestBuilderTest extends CirrusIntegrationTestCase {
 		], [
 			'CirrusSearchReplicaGroup' => 'b',
 		] );
-		$this->assertEquals( 'b:trebuchet', $builder->getPageType()->getIndex()->getName() );
+		$this->assertEquals( 'b:trebuchet', $builder->getIndex()->getName() );
 	}
 }

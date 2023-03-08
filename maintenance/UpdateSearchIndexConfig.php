@@ -2,6 +2,8 @@
 
 namespace CirrusSearch\Maintenance;
 
+use CirrusSearch\Connection;
+
 /**
  * Update the search configuration on the search backend.
  *
@@ -49,21 +51,66 @@ class UpdateSearchIndexConfig extends Maintenance {
 	 *  maint class is being created
 	 */
 	public function execute() {
-		$this->outputIndented( "indexing namespaces...\n" );
-		$child = $this->runChild( IndexNamespaces::class );
-		$child->execute();
-		$child->done();
+		// Use the default connection, rather than the one specified
+		// by --cluster, as we are collecting cluster independent metadata.
+		// Also our script specific `all` cluster fails self::getConnection.
+		$conn = Connection::getPool( $this->getSearchConfig() );
 
-		foreach ( $this->getConnection()->getAllIndexTypes( null ) as $indexType ) {
-			$this->outputIndented( "$indexType index...\n" );
-			$child = $this->runChild( UpdateOneSearchIndexConfig::class );
-			$child->mOptions[ 'indexType' ] = $indexType;
+		foreach ( $this->clustersToWriteTo() as $cluster ) {
+			$this->outputIndented( "Updating cluster $cluster...\n" );
+
+			$this->outputIndented( "indexing namespaces...\n" );
+			$child = $this->runChild( IndexNamespaces::class );
+			$child->done();
+			$child->loadParamsAndArgs(
+				null,
+				array_merge( $this->parameters->getOptions(), [
+					'cluster' => $cluster,
+				] ),
+				$this->parameters->getArgs()
+			);
 			$child->execute();
 			$child->done();
+
+			foreach ( $conn->getAllIndexSuffixes( null ) as $indexSuffix ) {
+				$this->outputIndented( "$indexSuffix index...\n" );
+				$child = $this->runChild( UpdateOneSearchIndexConfig::class );
+				$child->done();
+				$child->loadParamsAndArgs(
+					null,
+					array_merge( $this->parameters->getOptions(), [
+						'cluster' => $cluster,
+						'indexSuffix' => $indexSuffix,
+					] ),
+					$this->parameters->getArgs()
+				);
+				$child->execute();
+				$child->done();
+			}
 		}
 
 		return true;
 	}
+
+	/**
+	 * Convenience method to interperet the 'all' cluster
+	 * as a request to run against each of the writable clusters.
+	 *
+	 * @return string[]
+	 */
+	protected function clustersToWriteTo() {
+		$cluster = $this->getOption( 'cluster', null );
+		if ( $cluster === 'all' ) {
+			return $this->getSearchConfig()
+				->getClusterAssignment()
+				->getWritableClusters();
+		} else {
+			// single specified cluster. May be null, which
+			// indirectly selects the default search cluster.
+			return [ $cluster ];
+		}
+	}
+
 }
 
 $maintClass = UpdateSearchIndexConfig::class;

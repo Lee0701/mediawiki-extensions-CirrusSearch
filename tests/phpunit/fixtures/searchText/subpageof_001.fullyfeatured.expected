@@ -9,7 +9,7 @@
             "search_type": "dfs_query_then_fetch",
             "timeout": "20s"
         },
-        "path": "wiki\/page\/_search",
+        "path": "wiki\/_search",
         "query": {
             "_source": [
                 "namespace",
@@ -158,7 +158,7 @@
                     }
                 },
                 "highlight_query": {
-                    "match_all": []
+                    "match_all": {}
                 },
                 "post_tags": [
                     "\ue001"
@@ -198,7 +198,7 @@
                     ],
                     "must": [
                         {
-                            "match_all": []
+                            "match_all": {}
                         }
                     ]
                 }
@@ -265,7 +265,8 @@
             ],
             "stored_fields": [
                 "text.word_count"
-            ]
+            ],
+            "track_total_hits": true
         }
     }
 }

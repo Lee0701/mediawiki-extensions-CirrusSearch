@@ -3,6 +3,7 @@
 namespace CirrusSearch\Search;
 
 use CirrusSearch\CirrusDebugOptions;
+use CirrusSearch\CirrusSearchHookRunner;
 use CirrusSearch\ExternalIndex;
 use CirrusSearch\Fallbacks\FallbackRunner;
 use CirrusSearch\OtherIndexesUpdater;
@@ -16,6 +17,7 @@ use CirrusSearch\SearchConfig;
 use CirrusSearch\WarningCollector;
 use Elastica\Aggregation\AbstractAggregation;
 use Elastica\Query\AbstractQuery;
+use MediaWiki\MediaWikiServices;
 use Wikimedia\Assert\Assert;
 
 /**
@@ -123,6 +125,11 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	private $nonTextQueries = [];
 
 	/**
+	 * @var SearchQuery
+	 */
+	private $searchQuery;
+
+	/**
 	 * @var bool Should this search limit results to the local wiki?
 	 */
 	private $limitSearchToLocalWiki = false;
@@ -201,6 +208,15 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 * @var FallbackRunner|null
 	 */
 	private $fallbackRunner;
+	/**
+	 * @var CirrusSearchHookRunner|null
+	 */
+	private $cirrusSearchHookRunner;
+
+	/**
+	 * @var bool
+	 */
+	private $trackTotalHits = true;
 
 	/**
 	 * @param SearchConfig $config
@@ -208,13 +224,15 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 * @param CirrusDebugOptions|null $options
 	 * @param FallbackRunner|null $fallbackRunner
 	 * @param FetchPhaseConfigBuilder|null $fetchPhaseConfigBuilder
+	 * @param CirrusSearchHookRunner|null $cirrusSearchHookRunner
 	 */
 	public function __construct(
 		SearchConfig $config,
 		array $namespaces = null,
 		CirrusDebugOptions $options = null,
 		FallbackRunner $fallbackRunner = null,
-		FetchPhaseConfigBuilder $fetchPhaseConfigBuilder = null
+		FetchPhaseConfigBuilder $fetchPhaseConfigBuilder = null,
+		CirrusSearchHookRunner $cirrusSearchHookRunner = null
 	) {
 		$this->config = $config;
 		$this->namespaces = $namespaces;
@@ -222,6 +240,8 @@ class SearchContext implements WarningCollector, FilterBuilder {
 		$this->fallbackRunner = $fallbackRunner ?? FallbackRunner::noopRunner();
 		$this->fetchPhaseBuilder = $fetchPhaseConfigBuilder ?? new FetchPhaseConfigBuilder( $config );
 		$this->loadConfig();
+		$this->cirrusSearchHookRunner = $cirrusSearchHookRunner ?? new CirrusSearchHookRunner(
+			MediaWikiServices::getInstance()->getHookContainer() );
 	}
 
 	/**
@@ -397,14 +417,7 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 */
 	public function addSyntaxUsed( $feature, $weight = null ) {
 		$this->isDirty = true;
-		if ( $weight === null ) {
-			if ( isset( self::$syntaxWeights[$feature] ) ) {
-				$weight = self::$syntaxWeights[$feature];
-			} else {
-				$weight = 1;
-			}
-		}
-		$this->syntaxUsed[$feature] = $weight;
+		$this->syntaxUsed[$feature] = $weight ?? self::$syntaxWeights[$feature] ?? 1;
 	}
 
 	/**
@@ -513,7 +526,7 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 * @return array[] Rescore configurations as used by elasticsearch.
 	 */
 	public function getRescore() {
-		$rescores = ( new RescoreBuilder( $this ) )->build();
+		$rescores = ( new RescoreBuilder( $this, $this->cirrusSearchHookRunner ) )->build();
 		$result = [];
 		foreach ( $rescores as $rescore ) {
 			$rescore['query']['rescore_query'] = $rescore['query']['rescore_query']->toArray();
@@ -541,7 +554,9 @@ class SearchContext implements WarningCollector, FilterBuilder {
 		}
 		$filters = $this->filters;
 		if ( $this->getNamespaces() ) {
-			$filters[] = new \Elastica\Query\Terms( 'namespace', $this->getNamespaces() );
+			// We must take an array_values here, or it can be json-encoded into an object instead
+			// of a list which elasticsearch will interpret as terms lookup.
+			$filters[] = new \Elastica\Query\Terms( 'namespace', array_values( $this->getNamespaces() ) );
 		}
 
 		// Wrap $mainQuery in a filtered query if there are any filters
@@ -575,6 +590,13 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	public function addNonTextQuery( \Elastica\Query\AbstractQuery $match ) {
 		$this->isDirty = true;
 		$this->nonTextQueries[] = $match;
+	}
+
+	/**
+	 * @return SearchQuery
+	 */
+	public function getSearchQuery() {
+		return $this->searchQuery;
 	}
 
 	/**
@@ -619,7 +641,6 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	}
 
 	/**
-	 * Set the original search term
 	 * @param string $term
 	 */
 	public function setOriginalSearchTerm( $term ) {
@@ -673,7 +694,7 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 */
 	public function addWarning( $message, ...$params ) {
 		$this->isDirty = true;
-		$this->warnings[] = array_filter( func_get_args(), function ( $v ) {
+		$this->warnings[] = array_filter( func_get_args(), static function ( $v ) {
 			return $v !== null;
 		} );
 	}
@@ -713,7 +734,7 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	}
 
 	/**
-	 * @return ResultsType $resultsType results type to return
+	 * @return ResultsType
 	 */
 	public function getResultsType() {
 		Assert::precondition( $this->resultsType !== null, "resultsType unset" );
@@ -747,7 +768,6 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	}
 
 	/**
-	 * Set the phrase rescore query
 	 * @param AbstractQuery|null $phraseRescoreQuery
 	 */
 	public function setPhraseRescoreQuery( $phraseRescoreQuery ) {
@@ -816,16 +836,30 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 *
 	 * @param SearchQuery $query
 	 * @param FallbackRunner|null $fallbackRunner
+	 * @param CirrusSearchHookRunner|null $cirrusSearchHookRunner
 	 * @return SearchContext
+	 * @throws \CirrusSearch\Parser\ParsedQueryClassifierException
 	 */
-	public static function fromSearchQuery( SearchQuery $query, FallbackRunner $fallbackRunner = null ): SearchContext {
+	public static function fromSearchQuery(
+		SearchQuery $query,
+		FallbackRunner $fallbackRunner = null,
+		CirrusSearchHookRunner $cirrusSearchHookRunner = null
+	): SearchContext {
 		$searchContext = new SearchContext(
 			$query->getSearchConfig(),
 			$query->getNamespaces(),
 			$query->getDebugOptions(),
 			$fallbackRunner,
-			new FetchPhaseConfigBuilder( $query->getSearchConfig(), $query->getSearchEngineEntryPoint() )
+			new FetchPhaseConfigBuilder(
+				$query->getSearchConfig(),
+				$query->getSearchEngineEntryPoint(),
+				$query->shouldProvideAllSnippets()
+			),
+			$cirrusSearchHookRunner
 		);
+
+		$searchContext->searchQuery = $query;
+
 		$searchContext->limitSearchToLocalWiki = !$query->getCrossSearchStrategy()->isExtraIndicesSearchSupported();
 
 		$searchContext->rescoreProfile = $query->getForcedProfile( SearchProfileService::RESCORE );
@@ -866,5 +900,16 @@ class SearchContext implements WarningCollector, FilterBuilder {
 	 */
 	public function getFallbackRunner(): FallbackRunner {
 		return $this->fallbackRunner;
+	}
+
+	public function setTrackTotalHits( bool $trackTotalHits ): void {
+		if ( $trackTotalHits !== $this->trackTotalHits ) {
+			$this->isDirty = true;
+			$this->trackTotalHits = $trackTotalHits;
+		}
+	}
+
+	public function getTrackTotalHits(): bool {
+		return $this->trackTotalHits;
 	}
 }

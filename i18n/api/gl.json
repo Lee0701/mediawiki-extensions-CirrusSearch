@@ -1,10 +1,10 @@
 {
 	"@metadata": {
 		"authors": [
+			"ArenaL5",
 			"Banjo",
 			"Elisardojm",
-			"Toliño",
-			"ArenaL5"
+			"Toliño"
 		]
 	},
 	"apihelp-cirrus-config-dump-description": "Volcado da configuración CirrusSearch",

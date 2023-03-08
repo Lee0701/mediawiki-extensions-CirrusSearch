@@ -3,7 +3,7 @@
 namespace CirrusSearch\Job;
 
 use CirrusSearch\Updater;
-use JobQueueGroup;
+use MediaWiki\MediaWikiServices;
 use Title;
 
 /**
@@ -59,9 +59,10 @@ class LinksUpdate extends CirrusTitleJob {
 		$titleKeys = array_merge( $this->params[ 'addedLinks' ],
 			$this->params[ 'removedLinks' ] );
 		$refreshInterval = $this->getSearchConfig()->get( 'CirrusSearchRefreshInterval' );
+		$jobs = [];
 		foreach ( $titleKeys as $titleKey ) {
 			$title = Title::newFromDBkey( $titleKey );
-			if ( !$title ) {
+			if ( !$title || !$title->canExist() ) {
 				continue;
 			}
 			// If possible, delay the job execution by a few seconds so Elasticsearch
@@ -70,11 +71,11 @@ class LinksUpdate extends CirrusTitleJob {
 			// takes wgCirrusSearchRefreshInterval seconds but we double it and add
 			// one just in case.
 			$delay = 2 * $refreshInterval + 1;
-			$linkCount = new IncomingLinkCount( $title, [
+			$jobs[] = new IncomingLinkCount( $title, [
 				'cluster' => $this->params['cluster'],
 			] + self::buildJobDelayOptions( IncomingLinkCount::class, $delay ) );
-			JobQueueGroup::singleton()->push( $linkCount );
 		}
+		MediaWikiServices::getInstance()->getJobQueueGroup()->push( $jobs );
 
 		// All done
 		return $res;

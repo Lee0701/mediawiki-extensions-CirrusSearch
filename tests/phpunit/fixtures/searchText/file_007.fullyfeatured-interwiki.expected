@@ -9,7 +9,7 @@
             "search_type": "dfs_query_then_fetch",
             "timeout": "20s"
         },
-        "path": "wiki\/page\/_search",
+        "path": "wiki\/_search",
         "query": {
             "_source": [
                 "namespace",
@@ -135,7 +135,7 @@
                     }
                 },
                 "highlight_query": {
-                    "match_all": []
+                    "match_all": {}
                 },
                 "post_tags": [
                     "\ue001"
@@ -171,7 +171,7 @@
                     ],
                     "must": [
                         {
-                            "match_all": []
+                            "match_all": {}
                         }
                     ]
                 }
@@ -238,7 +238,8 @@
             ],
             "stored_fields": [
                 "text.word_count"
-            ]
+            ],
+            "track_total_hits": true
         }
     },
     "wikt": {
@@ -251,7 +252,7 @@
             "search_type": "dfs_query_then_fetch",
             "timeout": "20s"
         },
-        "path": "itwiktionary\/page\/_search",
+        "path": "itwiktionary\/_search",
         "query": {
             "_source": [
                 "namespace",
@@ -377,7 +378,7 @@
                     }
                 },
                 "highlight_query": {
-                    "match_all": []
+                    "match_all": {}
                 },
                 "post_tags": [
                     "\ue001"
@@ -413,7 +414,7 @@
                     ],
                     "must": [
                         {
-                            "match_all": []
+                            "match_all": {}
                         }
                     ]
                 }
@@ -480,7 +481,8 @@
             ],
             "stored_fields": [
                 "text.word_count"
-            ]
+            ],
+            "track_total_hits": true
         }
     },
     "b": {
@@ -493,7 +495,7 @@
             "search_type": "dfs_query_then_fetch",
             "timeout": "20s"
         },
-        "path": "itwikibooks\/page\/_search",
+        "path": "itwikibooks\/_search",
         "query": {
             "_source": [
                 "namespace",
@@ -619,7 +621,7 @@
                     }
                 },
                 "highlight_query": {
-                    "match_all": []
+                    "match_all": {}
                 },
                 "post_tags": [
                     "\ue001"
@@ -655,7 +657,7 @@
                     ],
                     "must": [
                         {
-                            "match_all": []
+                            "match_all": {}
                         }
                     ]
                 }
@@ -722,7 +724,8 @@
             ],
             "stored_fields": [
                 "text.word_count"
-            ]
+            ],
+            "track_total_hits": true
         }
     },
     "voy": {
@@ -735,7 +738,7 @@
             "search_type": "dfs_query_then_fetch",
             "timeout": "20s"
         },
-        "path": "itwikivoyage\/page\/_search",
+        "path": "itwikivoyage\/_search",
         "query": {
             "_source": [
                 "namespace",
@@ -861,7 +864,7 @@
                     }
                 },
                 "highlight_query": {
-                    "match_all": []
+                    "match_all": {}
                 },
                 "post_tags": [
                     "\ue001"
@@ -897,7 +900,7 @@
                     ],
                     "must": [
                         {
-                            "match_all": []
+                            "match_all": {}
                         }
                     ]
                 }
@@ -980,7 +983,8 @@
             ],
             "stored_fields": [
                 "text.word_count"
-            ]
+            ],
+            "track_total_hits": true
         }
     }
 }
