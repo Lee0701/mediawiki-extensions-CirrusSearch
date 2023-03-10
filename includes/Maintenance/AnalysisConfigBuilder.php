@@ -965,38 +965,11 @@ class AnalysisConfigBuilder {
 				'type' => 'custom',
 				'char_filter' => [ 'dotted_I_fix', 'nori_charfilter', 'nori_combo_filter' ],
 				'tokenizer' => 'nori_tok',
-				'filter' => [ 'nori_posfilter', 'nori_readingform', 'lowercase', 'remove_empty' ],
+				'filter' => [ 'nori_posfilter', 'lowercase', 'remove_empty' ],
 			];
-			$config[ 'analyzer' ][ 'text_search' ] = $config[ 'analyzer' ][ 'text' ];
-
-			$config[ 'analyzer' ][ 'plain' ] = [
-				'type' => 'custom',
-				'tokenizer' => 'nori_tok',
-				'filter' => [
-					'nori_readingform',
-					'lowercase',
-				],
-				'char_filter' => [ 'word_break_helper' ],
-			];
-
-			$config[ 'analyzer' ][ 'plain_search' ] = $config[ 'analyzer' ][ 'plain' ];
-
-			// $config[ 'analyzer' ][ 'suggest' ][ 'tokenizer' ] = 'nori_tok';
-			// $config[ 'analyzer' ][ 'suggest' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'suggest_shingle' ];
-			// $config[ 'analyzer' ][ 'suggest_reverse' ][ 'tokenizer' ] = 'nori_tok';
-			// $config[ 'analyzer' ][ 'suggest_reverse' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'suggest_shingle', 'reverse' ];
-
-			// $config[ 'analyzer' ][ 'near_match' ][ 'tokenizer' ] = 'nori_tok';
-			// $config[ 'analyzer' ][ 'near_match' ][ 'filter' ][] = 'nori_readingform';
 
 			$config[ 'analyzer' ][ 'prefix' ][ 'tokenizer' ] = 'nori_tok_discard';
 			$config[ 'analyzer' ][ 'prefix' ][ 'filter' ] = [ 'nori_readingform' , 'lowercase', 'concatenation', 'prefix_ngram_filter' ];
-
-			$config[ 'analyzer' ][ 'word_prefix' ][ 'tokenizer' ] = 'nori_tok';
-			$config[ 'analyzer' ][ 'word_prefix' ][ 'filter' ] = [ 'nori_readingform', 'lowercase', 'prefix_ngram_filter' ];
-
-			$config[ 'analyzer' ][ 'keyword' ][ 'tokenizer' ] = 'nori_tok';
-			$config[ 'analyzer' ][ 'keyword' ][ 'filter' ] = [ 'nori_readingform', 'truncate_keyword' ];
 
 			break;
 		case 'mirandese':
